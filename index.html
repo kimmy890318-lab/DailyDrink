@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✨Kimmy的飲料庫✨</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+        
+        :root {
+            --morandi-bg: #f2ede4;
+            --morandi-card: #ffffff;
+            --morandi-primary: #a89078;
+            --morandi-secondary: #d4c5b3;
+            --morandi-text: #5d5750;
+            --drink-1: #efeae0; /* 實色淺米白 */
+            --drink-2: #c5b4a0; /* 深米粽 */
+            --border-color: #e5dfd3;
+            --today-circle: #8a7a6a; /* 今日圓圈顏色 */
+        }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: var(--morandi-bg);
+            color: var(--morandi-text);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background-color: var(--border-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .day-card {
+            aspect-ratio: 1 / 1;
+            background-color: white;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+        }
+
+        /* 實色樣式 */
+        .day-card.has-1 { background-color: var(--drink-1) !important; }
+        .day-card.has-2 { background-color: var(--drink-2) !important; color: white; }
+
+        /* 今日標記：細圓圈 */
+        .day-card.is-today::after {
+            content: '';
+            position: absolute;
+            width: 80%;
+            height: 80%;
+            border: 1px solid var(--today-circle);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .day-card:hover { filter: brightness(0.98); }
+
+        .stat-card {
+            background-color: var(--morandi-card);
+            border-radius: 16px;
+            padding: 1rem;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .option-btn {
+            border: 1px solid var(--morandi-secondary);
+            background-color: white;
+            transition: all 0.2s;
+            font-size: 0.75rem;
+            padding: 0.5rem 0.25rem;
+            border-radius: 8px;
+            color: var(--morandi-text);
+        }
+
+        .option-btn.active {
+            background-color: var(--morandi-primary);
+            color: white;
+            border-color: var(--morandi-primary);
+        }
+
+        input {
+            background-color: #faf9f6;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.5rem;
+            outline: none;
+            font-size: 0.8rem;
+            transition: border-color 0.2s;
+            width: 100%;
+        }
+
+        input:focus { border-color: var(--morandi-primary); }
+
+        .modal-scroll::-webkit-scrollbar { width: 4px; }
+        .modal-scroll::-webkit-scrollbar-thumb { background: var(--morandi-secondary); border-radius: 10px; }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-2xl font-bold tracking-widest text-[#8a7a6a] mb-1">✨Kimmy的飲料庫✨</h1>
+            <p class="text-[#a89078] opacity-70 uppercase text-[10px] tracking-[0.2em]">Drink Archive 2026</p>
+        </header>
+
+        <!-- 4-Grid Statistics -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+            <div class="stat-card">
+                <span class="text-[9px] uppercase tracking-wider text-gray-400 block mb-1">當月杯數</span>
+                <span id="stat-month-count" class="text-xl font-bold text-[#8a7a6a]">0</span>
+            </div>
+            <div class="stat-card">
+                <span class="text-[9px] uppercase tracking-wider text-gray-400 block mb-1">當月金額</span>
+                <span id="stat-month-price" class="text-xl font-bold text-[#8a7a6a]">0</span>
+            </div>
+            <div class="stat-card">
+                <span class="text-[9px] uppercase tracking-wider text-gray-400 block mb-1">年度杯數</span>
+                <span id="stat-year-count" class="text-xl font-bold text-[#a89078]">0</span>
+            </div>
+            <div class="stat-card">
+                <span class="text-[9px] uppercase tracking-wider text-gray-400 block mb-1">年度金額</span>
+                <span id="stat-year-price" class="text-xl font-bold text-[#a89078]">0</span>
+            </div>
+        </div>
+
+        <!-- Calendar Container -->
+        <div class="bg-white/40 backdrop-blur-sm p-4 rounded-[24px] border border-[#e5dfd3]">
+            <div class="flex justify-between items-center mb-6 px-1">
+                <button id="prevMonth" class="text-[#a89078] hover:bg-white w-8 h-8 rounded-full transition">&lt;</button>
+                <h2 id="currentMonthDisplay" class="text-sm font-bold tracking-widest text-[#5d5750]">2026年 1月</h2>
+                <button id="nextMonth" class="text-[#a89078] hover:bg-white w-8 h-8 rounded-full transition">&gt;</button>
+            </div>
+
+            <div class="grid grid-cols-7 mb-1">
+                <div class="text-center text-[#d4c5b3] text-[9px] font-bold uppercase py-2">Sun</div>
+                <div class="text-center text-[#d4c5b3] text-[9px] font-bold uppercase py-2">Mon</div>
+                <div class="text-center text-[#d4c5b3] text-[9px] font-bold uppercase py-2">Tue</div>
+                <div class="text-center text-[#d4c5b3] text-[9px] font-bold uppercase py-2">Wed</div>
+                <div class="text-center text-[#d4c5b3] text-[9px] font-bold uppercase py-2">Thu</div>
+                <div class="text-center text-[#d4c5b3] text-[9px] font-bold uppercase py-2">Fri</div>
+                <div class="text-center text-[#d4c5b3] text-[9px] font-bold uppercase py-2">Sat</div>
+            </div>
+
+            <div id="calendar-days" class="calendar-grid"></div>
+        </div>
+    </div>
+
+    <!-- Log Modal -->
+    <div id="log-modal" class="fixed inset-0 bg-stone-900/30 backdrop-blur-[1px] hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-[24px] overflow-hidden shadow-xl border border-[#e5dfd3]">
+            <div class="bg-[#f9f8f6] px-6 py-4 border-b border-[#eeeae3] flex justify-between items-center">
+                <div>
+                    <span id="modal-date-title" class="text-[10px] font-bold text-[#a89078] tracking-widest block uppercase">Date</span>
+                    <h3 class="text-sm font-bold text-gray-600">飲品日誌</h3>
+                </div>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-2xl font-light">&times;</button>
+            </div>
+            
+            <div class="p-6 max-h-[60vh] overflow-y-auto modal-scroll">
+                <!-- Drink 1 -->
+                <div class="mb-8">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="w-1.5 h-4 bg-[#a89078] rounded-full"></span>
+                        <span class="text-xs font-bold text-[#a89078]">第一杯</span>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div><label class="text-[10px] text-gray-400 mb-1 block">店名</label><input type="text" id="d1-store" placeholder="例: 五十嵐"></div>
+                            <div><label class="text-[10px] text-gray-400 mb-1 block">品項</label><input type="text" id="d1-item" placeholder="例: 珍珠奶茶"></div>
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-gray-400 mb-1.5 block">冰塊</label>
+                            <div class="grid grid-cols-4 gap-1.5">
+                                <button type="button" class="option-btn d1-ice" onclick="selectOpt('d1-ice', this)">正常</button>
+                                <button type="button" class="option-btn d1-ice" onclick="selectOpt('d1-ice', this)">少冰</button>
+                                <button type="button" class="option-btn d1-ice" onclick="selectOpt('d1-ice', this)">微冰</button>
+                                <button type="button" class="option-btn d1-ice" onclick="selectOpt('d1-ice', this)">去冰</button>
+                                <button type="button" class="option-btn d1-ice" onclick="selectOpt('d1-ice', this)">常溫</button>
+                                <button type="button" class="option-btn d1-ice" onclick="selectOpt('d1-ice', this)">溫</button>
+                                <button type="button" class="option-btn d1-ice col-span-2" onclick="selectOpt('d1-ice', this)">無法調整</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-gray-400 mb-1.5 block">甜度</label>
+                            <div class="grid grid-cols-4 gap-1.5">
+                                <button type="button" class="option-btn d1-sweet" onclick="selectOpt('d1-sweet', this)">全糖</button>
+                                <button type="button" class="option-btn d1-sweet" onclick="selectOpt('d1-sweet', this)">少糖</button>
+                                <button type="button" class="option-btn d1-sweet" onclick="selectOpt('d1-sweet', this)">半糖</button>
+                                <button type="button" class="option-btn d1-sweet" onclick="selectOpt('d1-sweet', this)">微糖</button>
+                                <button type="button" class="option-btn d1-sweet" onclick="selectOpt('d1-sweet', this)">一分糖</button>
+                                <button type="button" class="option-btn d1-sweet" onclick="selectOpt('d1-sweet', this)">無糖</button>
+                                <button type="button" class="option-btn d1-sweet col-span-2" onclick="selectOpt('d1-sweet', this)">無法調整</button>
+                            </div>
+                        </div>
+                        <div><label class="text-[10px] text-gray-400 mb-1 block">金額 (NT$)</label><input type="number" id="d1-price" placeholder="0"></div>
+                    </div>
+                </div>
+
+                <!-- Drink 2 -->
+                <div class="border-t border-dashed border-[#e5dfd3] pt-6 mb-4">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="w-1.5 h-4 bg-[#d4c5b3] rounded-full"></span>
+                        <span class="text-xs font-bold text-[#8a7a6a]">第二杯</span>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div><label class="text-[10px] text-gray-400 mb-1 block">店名</label><input type="text" id="d2-store" placeholder="例: 迷客夏"></div>
+                            <div><label class="text-[10px] text-gray-400 mb-1 block">品項</label><input type="text" id="d2-item" placeholder="例: 青茶"></div>
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-gray-400 mb-1.5 block">冰塊</label>
+                            <div class="grid grid-cols-4 gap-1.5">
+                                <button type="button" class="option-btn d2-ice" onclick="selectOpt('d2-ice', this)">正常</button>
+                                <button type="button" class="option-btn d2-ice" onclick="selectOpt('d2-ice', this)">少冰</button>
+                                <button type="button" class="option-btn d2-ice" onclick="selectOpt('d2-ice', this)">微冰</button>
+                                <button type="button" class="option-btn d2-ice" onclick="selectOpt('d2-ice', this)">去冰</button>
+                                <button type="button" class="option-btn d2-ice" onclick="selectOpt('d2-ice', this)">常溫</button>
+                                <button type="button" class="option-btn d2-ice" onclick="selectOpt('d2-ice', this)">溫</button>
+                                <button type="button" class="option-btn d2-ice col-span-2" onclick="selectOpt('d2-ice', this)">無法調整</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-gray-400 mb-1.5 block">甜度</label>
+                            <div class="grid grid-cols-4 gap-1.5">
+                                <button type="button" class="option-btn d2-sweet" onclick="selectOpt('d2-sweet', this)">全糖</button>
+                                <button type="button" class="option-btn d2-sweet" onclick="selectOpt('d2-sweet', this)">少糖</button>
+                                <button type="button" class="option-btn d2-sweet" onclick="selectOpt('d2-sweet', this)">半糖</button>
+                                <button type="button" class="option-btn d2-sweet" onclick="selectOpt('d2-sweet', this)">微糖</button>
+                                <button type="button" class="option-btn d2-sweet" onclick="selectOpt('d2-sweet', this)">一分糖</button>
+                                <button type="button" class="option-btn d2-sweet" onclick="selectOpt('d2-sweet', this)">無糖</button>
+                                <button type="button" class="option-btn d2-sweet col-span-2" onclick="selectOpt('d2-sweet', this)">無法調整</button>
+                            </div>
+                        </div>
+                        <div><label class="text-[10px] text-gray-400 mb-1 block">金額 (NT$)</label><input type="number" id="d2-price" placeholder="0"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-6 bg-[#f9f8f6] border-t border-[#eeeae3] flex gap-3">
+                <button onclick="saveData()" class="flex-1 bg-[#a89078] text-white py-3 rounded-xl text-sm font-bold shadow-md active:scale-[0.98] transition">儲存資料 Archive</button>
+                <button onclick="clearDayData()" class="px-4 bg-white text-gray-400 border border-[#e5dfd3] py-3 rounded-xl text-xs hover:text-red-400 transition">清除</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentYear = 2026;
+        let currentMonth = new Date().getMonth(); // 預設開啟目前月份
+        let selectedDateKey = "";
+        let drinkData = JSON.parse(localStorage.getItem('kimmy_drink_db_2026_v3')) || {};
+
+        const months = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
+        
+        const calendarDays = document.getElementById('calendar-days');
+        const monthDisplay = document.getElementById('currentMonthDisplay');
+        const modal = document.getElementById('log-modal');
+        
+        const statMonthCount = document.getElementById('stat-month-count');
+        const statMonthPrice = document.getElementById('stat-month-price');
+        const statYearCount = document.getElementById('stat-year-count');
+        const statYearPrice = document.getElementById('stat-year-price');
+
+        function init() {
+            renderCalendar();
+            updateStats();
+        }
+
+        function renderCalendar() {
+            calendarDays.innerHTML = '';
+            monthDisplay.innerText = `${currentYear}年 ${months[currentMonth]}`;
+
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+            // 取得今日資訊
+            const now = new Date();
+            const todayYear = now.getFullYear();
+            const todayMonth = now.getMonth();
+            const todayDate = now.getDate();
+
+            for (let i = 0; i < firstDay; i++) {
+                const empty = document.createElement('div');
+                empty.className = "bg-[#faf9f7]";
+                calendarDays.appendChild(empty);
+            }
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const dayEl = document.createElement('div');
+                dayEl.className = `day-card`;
+                
+                // 判斷是否為今日
+                if (currentYear === todayYear && currentMonth === todayMonth && d === todayDate) {
+                    dayEl.classList.add('is-today');
+                }
+
+                const dayLabel = document.createElement('span');
+                dayLabel.innerText = d;
+                dayLabel.className = "text-xs font-medium z-10";
+                dayEl.appendChild(dayLabel);
+
+                if (drinkData[dateKey]) {
+                    const count = (drinkData[dateKey].d1?.store ? 1 : 0) + (drinkData[dateKey].d2?.store ? 1 : 0);
+                    if (count === 1) dayEl.classList.add('has-1');
+                    else if (count >= 2) dayEl.classList.add('has-2');
+                }
+
+                dayEl.onclick = () => openModal(dateKey);
+                calendarDays.appendChild(dayEl);
+            }
+        }
+
+        function openModal(dateKey) {
+            selectedDateKey = dateKey;
+            document.getElementById('modal-date-title').innerText = dateKey.replace(/-/g, ' . ');
+            modal.classList.remove('hidden');
+            resetForm();
+            if (drinkData[dateKey]) {
+                const data = drinkData[dateKey];
+                loadDrinkToForm('d1', data.d1);
+                loadDrinkToForm('d2', data.d2);
+            }
+        }
+
+        function loadDrinkToForm(prefix, data) {
+            if (!data) return;
+            document.getElementById(`${prefix}-store`).value = data.store || '';
+            document.getElementById(`${prefix}-item`).value = data.item || '';
+            document.getElementById(`${prefix}-price`).value = data.price || '';
+            matchOption(`${prefix}-ice`, data.ice);
+            matchOption(`${prefix}-sweet`, data.sweet);
+        }
+
+        function closeModal() { modal.classList.add('hidden'); }
+        function resetForm() {
+            modal.querySelectorAll('input').forEach(input => input.value = '');
+            modal.querySelectorAll('button.option-btn').forEach(btn => btn.classList.remove('active'));
+        }
+
+        function selectOpt(groupClass, element) {
+            document.querySelectorAll(`.${groupClass}`).forEach(b => b.classList.remove('active'));
+            element.classList.add('active');
+        }
+
+        function matchOption(groupClass, value) {
+            document.querySelectorAll(`.${groupClass}`).forEach(b => {
+                if (b.innerText === value) b.classList.add('active');
+            });
+        }
+
+        function getSelectedText(groupClass) {
+            const active = document.querySelector(`.${groupClass}.active`);
+            return active ? active.innerText : '';
+        }
+
+        function saveData() {
+            const d1 = {
+                store: document.getElementById('d1-store').value,
+                item: document.getElementById('d1-item').value,
+                ice: getSelectedText('d1-ice'),
+                sweet: getSelectedText('d1-sweet'),
+                price: parseFloat(document.getElementById('d1-price').value) || 0
+            };
+            const d2 = {
+                store: document.getElementById('d2-store').value,
+                item: document.getElementById('d2-item').value,
+                ice: getSelectedText('d2-ice'),
+                sweet: getSelectedText('d2-sweet'),
+                price: parseFloat(document.getElementById('d2-price').value) || 0
+            };
+            if (d1.store || d2.store) drinkData[selectedDateKey] = { d1, d2 };
+            else delete drinkData[selectedDateKey];
+            localStorage.setItem('kimmy_drink_db_2026_v3', JSON.stringify(drinkData));
+            renderCalendar(); updateStats(); closeModal();
+        }
+
+        function clearDayData() {
+            if (confirm('確定要清除這天的紀錄嗎？')) {
+                delete drinkData[selectedDateKey];
+                localStorage.setItem('kimmy_drink_db_2026_v3', JSON.stringify(drinkData));
+                renderCalendar(); updateStats(); closeModal();
+            }
+        }
+
+        function updateStats() {
+            let mCount = 0, mPrice = 0, yCount = 0, yPrice = 0;
+            const mPrefix = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+            const yPrefix = `${currentYear}-`;
+            for (const key in drinkData) {
+                const day = drinkData[key];
+                const countInDay = (day.d1?.store ? 1 : 0) + (day.d2?.store ? 1 : 0);
+                const priceInDay = (day.d1?.price || 0) + (day.d2?.price || 0);
+                if (key.startsWith(yPrefix)) { yCount += countInDay; yPrice += priceInDay; }
+                if (key.startsWith(mPrefix)) { mCount += countInDay; mPrice += priceInDay; }
+            }
+            statMonthCount.innerText = mCount;
+            statMonthPrice.innerText = mPrice.toLocaleString();
+            statYearCount.innerText = yCount;
+            statYearPrice.innerText = yPrice.toLocaleString();
+        }
+
+        document.getElementById('prevMonth').onclick = () => { if (currentMonth > 0) { currentMonth--; renderCalendar(); updateStats(); } };
+        document.getElementById('nextMonth').onclick = () => { if (currentMonth < 11) { currentMonth++; renderCalendar(); updateStats(); } };
+
+        window.onload = init;
+    </script>
+</body>
+</html>
