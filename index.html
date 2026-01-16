@@ -14,10 +14,10 @@
             --morandi-primary: #a89078;
             --morandi-secondary: #d4c5b3;
             --morandi-text: #5d5750;
-            --drink-1: #efeae0; /* 實色淺米白 */
-            --drink-2: #c5b4a0; /* 深米粽 */
+            --drink-1: #efeae0;
+            --drink-2: #c5b4a0;
             --border-color: #e5dfd3;
-            --today-circle: #8a7a6a; /* 今日圓圈顏色 */
+            --today-circle: #8a7a6a;
         }
 
         body {
@@ -49,11 +49,9 @@
             position: relative;
         }
 
-        /* 實色樣式 */
         .day-card.has-1 { background-color: var(--drink-1) !important; }
         .day-card.has-2 { background-color: var(--drink-2) !important; color: white; }
 
-        /* 今日標記：細圓圈 */
         .day-card.is-today::after {
             content: '';
             position: absolute;
@@ -72,7 +70,11 @@
             padding: 1rem;
             text-align: center;
             border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
+
+        .stat-card:active { transform: scale(0.96); }
 
         .option-btn {
             border: 1px solid var(--morandi-secondary);
@@ -105,6 +107,24 @@
 
         .modal-scroll::-webkit-scrollbar { width: 4px; }
         .modal-scroll::-webkit-scrollbar-thumb { background: var(--morandi-secondary); border-radius: 10px; }
+
+        /* 清單表格樣式 */
+        .list-table {
+            width: 100%;
+            font-size: 0.75rem;
+            border-collapse: collapse;
+        }
+        .list-table th {
+            text-align: left;
+            color: var(--morandi-primary);
+            font-weight: 700;
+            padding: 8px 4px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .list-table td {
+            padding: 10px 4px;
+            border-bottom: 1px dotted var(--border-color);
+        }
     </style>
 </head>
 <body class="min-h-screen p-4 md:p-8">
@@ -118,19 +138,19 @@
 
         <!-- 4-Grid Statistics -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-            <div class="stat-card">
+            <div class="stat-card" onclick="openListModal('month')">
                 <span class="text-[9px] uppercase tracking-wider text-gray-400 block mb-1">當月杯數</span>
                 <span id="stat-month-count" class="text-xl font-bold text-[#8a7a6a]">0</span>
             </div>
-            <div class="stat-card">
+            <div class="stat-card" onclick="openListModal('month')">
                 <span class="text-[9px] uppercase tracking-wider text-gray-400 block mb-1">當月金額</span>
                 <span id="stat-month-price" class="text-xl font-bold text-[#8a7a6a]">0</span>
             </div>
-            <div class="stat-card">
+            <div class="stat-card" onclick="openListModal('year')">
                 <span class="text-[9px] uppercase tracking-wider text-gray-400 block mb-1">年度杯數</span>
                 <span id="stat-year-count" class="text-xl font-bold text-[#a89078]">0</span>
             </div>
-            <div class="stat-card">
+            <div class="stat-card" onclick="openListModal('year')">
                 <span class="text-[9px] uppercase tracking-wider text-gray-400 block mb-1">年度金額</span>
                 <span id="stat-year-price" class="text-xl font-bold text-[#a89078]">0</span>
             </div>
@@ -158,7 +178,7 @@
         </div>
     </div>
 
-    <!-- Log Modal -->
+    <!-- Log Modal (Input) -->
     <div id="log-modal" class="fixed inset-0 bg-stone-900/30 backdrop-blur-[1px] hidden z-50 flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-[24px] overflow-hidden shadow-xl border border-[#e5dfd3]">
             <div class="bg-[#f9f8f6] px-6 py-4 border-b border-[#eeeae3] flex justify-between items-center">
@@ -166,7 +186,7 @@
                     <span id="modal-date-title" class="text-[10px] font-bold text-[#a89078] tracking-widest block uppercase">Date</span>
                     <h3 class="text-sm font-bold text-gray-600">飲品日誌</h3>
                 </div>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-2xl font-light">&times;</button>
+                <button onclick="closeModal('log-modal')" class="text-gray-400 hover:text-gray-600 text-2xl font-light">&times;</button>
             </div>
             
             <div class="p-6 max-h-[60vh] overflow-y-auto modal-scroll">
@@ -256,9 +276,45 @@
         </div>
     </div>
 
+    <!-- List Modal (Details) -->
+    <div id="list-modal" class="fixed inset-0 bg-stone-900/30 backdrop-blur-[1px] hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-[24px] overflow-hidden shadow-xl border border-[#e5dfd3]">
+            <div class="bg-[#f9f8f6] px-6 py-4 border-b border-[#eeeae3] flex justify-between items-center">
+                <div>
+                    <span id="list-modal-title" class="text-[10px] font-bold text-[#a89078] tracking-widest block uppercase">Monthly Summary</span>
+                    <h3 id="list-modal-subtitle" class="text-sm font-bold text-gray-600">消費細項清單</h3>
+                </div>
+                <button onclick="closeModal('list-modal')" class="text-gray-400 hover:text-gray-600 text-2xl font-light">&times;</button>
+            </div>
+            
+            <div class="p-4 max-h-[70vh] overflow-y-auto modal-scroll">
+                <table class="list-table">
+                    <thead>
+                        <tr>
+                            <th width="20%">日期</th>
+                            <th width="25%">店名</th>
+                            <th width="35%">品項</th>
+                            <th width="20%">金額</th>
+                        </tr>
+                    </thead>
+                    <tbody id="list-tbody">
+                        <!-- Items generated by JS -->
+                    </tbody>
+                </table>
+                <div id="list-empty" class="py-12 text-center text-gray-300 text-xs hidden">
+                    目前沒有相關紀錄
+                </div>
+            </div>
+            <div class="p-4 bg-[#f9f8f6] border-t border-[#eeeae3] text-right">
+                <span class="text-[10px] text-gray-400 uppercase tracking-widest mr-2">Total</span>
+                <span id="list-total-sum" class="text-lg font-bold text-[#a89078]">NT$ 0</span>
+            </div>
+        </div>
+    </div>
+
     <script>
         let currentYear = 2026;
-        let currentMonth = new Date().getMonth(); // 預設開啟目前月份
+        let currentMonth = new Date().getMonth();
         let selectedDateKey = "";
         let drinkData = JSON.parse(localStorage.getItem('kimmy_drink_db_2026_v3')) || {};
 
@@ -266,7 +322,8 @@
         
         const calendarDays = document.getElementById('calendar-days');
         const monthDisplay = document.getElementById('currentMonthDisplay');
-        const modal = document.getElementById('log-modal');
+        const logModal = document.getElementById('log-modal');
+        const listModal = document.getElementById('list-modal');
         
         const statMonthCount = document.getElementById('stat-month-count');
         const statMonthPrice = document.getElementById('stat-month-price');
@@ -285,7 +342,6 @@
             const firstDay = new Date(currentYear, currentMonth, 1).getDay();
             const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
-            // 取得今日資訊
             const now = new Date();
             const todayYear = now.getFullYear();
             const todayMonth = now.getMonth();
@@ -302,7 +358,6 @@
                 const dayEl = document.createElement('div');
                 dayEl.className = `day-card`;
                 
-                // 判斷是否為今日
                 if (currentYear === todayYear && currentMonth === todayMonth && d === todayDate) {
                     dayEl.classList.add('is-today');
                 }
@@ -326,13 +381,64 @@
         function openModal(dateKey) {
             selectedDateKey = dateKey;
             document.getElementById('modal-date-title').innerText = dateKey.replace(/-/g, ' . ');
-            modal.classList.remove('hidden');
+            logModal.classList.remove('hidden');
             resetForm();
             if (drinkData[dateKey]) {
                 const data = drinkData[dateKey];
                 loadDrinkToForm('d1', data.d1);
                 loadDrinkToForm('d2', data.d2);
             }
+        }
+
+        function openListModal(type) {
+            const tbody = document.getElementById('list-tbody');
+            const title = document.getElementById('list-modal-title');
+            const subtitle = document.getElementById('list-modal-subtitle');
+            const emptyHint = document.getElementById('list-empty');
+            const totalSum = document.getElementById('list-total-sum');
+            
+            tbody.innerHTML = '';
+            let items = [];
+            let sum = 0;
+
+            const filterPrefix = type === 'month' 
+                ? `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`
+                : `${currentYear}-`;
+
+            title.innerText = type === 'month' ? `${currentYear} . ${currentMonth + 1} SUMMARY` : `${currentYear} YEARLY SUMMARY`;
+            subtitle.innerText = type === 'month' ? `${months[currentMonth]} 消費細項` : `${currentYear}年度 消費細項`;
+
+            // Collect and sort data
+            Object.keys(drinkData).forEach(key => {
+                if (key.startsWith(filterPrefix)) {
+                    const day = drinkData[key];
+                    if (day.d1?.store) items.push({ date: key, ...day.d1 });
+                    if (day.d2?.store) items.push({ date: key, ...day.d2 });
+                }
+            });
+
+            // Sort by date descending
+            items.sort((a, b) => b.date.localeCompare(a.date));
+
+            if (items.length === 0) {
+                emptyHint.classList.remove('hidden');
+            } else {
+                emptyHint.classList.add('hidden');
+                items.forEach(item => {
+                    sum += item.price;
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="text-gray-400">${item.date.split('-').slice(1).join('/')}</td>
+                        <td class="font-medium">${item.store}</td>
+                        <td class="text-gray-500">${item.item}</td>
+                        <td class="font-bold text-[#a89078]">NT$ ${item.price}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            totalSum.innerText = `NT$ ${sum.toLocaleString()}`;
+            listModal.classList.remove('hidden');
         }
 
         function loadDrinkToForm(prefix, data) {
@@ -344,10 +450,10 @@
             matchOption(`${prefix}-sweet`, data.sweet);
         }
 
-        function closeModal() { modal.classList.add('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
         function resetForm() {
-            modal.querySelectorAll('input').forEach(input => input.value = '');
-            modal.querySelectorAll('button.option-btn').forEach(btn => btn.classList.remove('active'));
+            logModal.querySelectorAll('input').forEach(input => input.value = '');
+            logModal.querySelectorAll('button.option-btn').forEach(btn => btn.classList.remove('active'));
         }
 
         function selectOpt(groupClass, element) {
@@ -384,14 +490,14 @@
             if (d1.store || d2.store) drinkData[selectedDateKey] = { d1, d2 };
             else delete drinkData[selectedDateKey];
             localStorage.setItem('kimmy_drink_db_2026_v3', JSON.stringify(drinkData));
-            renderCalendar(); updateStats(); closeModal();
+            renderCalendar(); updateStats(); closeModal('log-modal');
         }
 
         function clearDayData() {
             if (confirm('確定要清除這天的紀錄嗎？')) {
                 delete drinkData[selectedDateKey];
                 localStorage.setItem('kimmy_drink_db_2026_v3', JSON.stringify(drinkData));
-                renderCalendar(); updateStats(); closeModal();
+                renderCalendar(); updateStats(); closeModal('log-modal');
             }
         }
 
